@@ -1,7 +1,8 @@
 face_recognition
 opencv-python
 numpy
-pillow 
+pillow
 tkinter 
 pyinstaller
-setuptools
+setuptools 
+dlib

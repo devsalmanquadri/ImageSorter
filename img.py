@@ -1,32 +1,26 @@
-from PIL import Image
-import face_recognition
-import os
-import shutil
-import numpy as np
-import tkinter as tk
+from PIL import Image  # Import the Image module from PIL (Pillow) library
+import face_recognition  # Import the face_recognition library
+import os  # Import the os module for file and directory operations
+import shutil  # Import the shutil module for file operations
+import numpy as np  # Import the numpy library for numerical operations
+import tkinter as tk  # Import the tkinter library for GUI
+# Import specific modules from tkinter
 from tkinter import filedialog, messagebox, ttk
-from tkinter import font as tkfont
-import threading
-
-# Ensure the model path is correctly set
-model_path = os.path.join(os.path.dirname(
-    __file__), "shape_predictor_68_face_landmarks.dat")
-
-# Load the model
-face_recognition.face_landmark_model = model_path
+from tkinter import font as tkfont  # Import the font module from tkinter
+import threading  # Import the threading module for multi-threading
 
 # Global variables
-KNOWN_FACES_DIR = ""
-SORTED_DIR = ""
-image_directory = ""
-processed_images = 0
-total_images = 0
+KNOWN_FACES_DIR = ""  # Directory for known faces
+SORTED_DIR = ""  # Directory for sorted images
+image_directory = ""  # Directory for images to process
+processed_images = 0  # Counter for processed images
+total_images = 0  # Total number of images to process
 
 # Tkinter window setup
-root = tk.Tk()
-root.title("Image Sorter")
-root.geometry("800x800")
-root.config(bg="#1e1e1e")
+root = tk.Tk()  # Create the main window
+root.title("Image Sorter")  # Set the window title
+root.geometry("800x800")  # Set the window size
+root.config(bg="#1e1e1e")  # Set the background color
 
 # Set a custom font for the app
 font_style = tkfont.Font(family="Helvetica", size=12, weight="bold")
@@ -79,8 +73,8 @@ def check_button_state():
 
 
 def encode_known_faces():
-    known_face_encodings = []
-    known_face_names = []
+    known_face_encodings = []  # List to store face encodings
+    known_face_names = []  # List to store face names
 
     if not KNOWN_FACES_DIR:
         messagebox.showerror("Error", "Please select a known faces directory.")
@@ -96,14 +90,17 @@ def encode_known_faces():
             image_path = os.path.join(person_dir, image_name)
 
             try:
-                img = Image.open(image_path).convert("RGB")
-                img = np.array(img)
+                img = Image.open(image_path).convert(
+                    "RGB")  # Open and convert image to RGB
+                img = np.array(img)  # Convert image to numpy array
 
-                encodings = face_recognition.face_encodings(img)
+                encodings = face_recognition.face_encodings(
+                    img)  # Get face encodings
 
                 if encodings:
-                    known_face_encodings.append(encodings[0])
-                    known_face_names.append(person_name)
+                    known_face_encodings.append(
+                        encodings[0])  # Add encoding to list
+                    known_face_names.append(person_name)  # Add name to list
 
             except Exception as e:
                 print(f"Error processing {image_name}: {e}")
@@ -121,41 +118,45 @@ def process_images(known_face_encodings, known_face_names):
             "Error", "Please select both image and sorted directories.")
         return
 
-    # Create the sorted directory if it does not exist
     if not os.path.exists(SORTED_DIR):
+        # Create the sorted directory if it does not exist
         os.makedirs(SORTED_DIR)
         update_log_output(f"Created sorted directory: {SORTED_DIR}")
 
     image_filenames = os.listdir(image_directory)
-    total_images = len(image_filenames)
+    total_images = len(image_filenames)  # Get total number of images
 
     if not known_face_encodings:
         messagebox.showinfo(
             "Info", "No known faces found. Skipping image processing.")
         return
 
-    processed_images = 0
+    processed_images = 0  # Reset processed images counter
 
     for filename in image_filenames:
         image_path = os.path.join(image_directory, filename)
 
         try:
-            img = Image.open(image_path).convert("RGB")
-            img = np.array(img)
+            img = Image.open(image_path).convert(
+                "RGB")  # Open and convert image to RGB
+            img = np.array(img)  # Convert image to numpy array
 
-            face_locations = face_recognition.face_locations(img)
+            face_locations = face_recognition.face_locations(
+                img)  # Get face locations
             face_encodings = face_recognition.face_encodings(
-                img, face_locations)
+                img, face_locations)  # Get face encodings
 
             matched_names = []
             for face_encoding in face_encodings:
                 matches = face_recognition.compare_faces(
-                    known_face_encodings, face_encoding)
+                    known_face_encodings, face_encoding)  # Compare faces
                 face_distance = face_recognition.face_distance(
-                    known_face_encodings, face_encoding)
-                best_match_index = np.argmin(face_distance)
+                    known_face_encodings, face_encoding)  # Get face distance
+                best_match_index = np.argmin(
+                    face_distance)  # Get best match index
 
                 if matches[best_match_index]:
+                    # Get matched name
                     name = known_face_names[best_match_index]
                     matched_names.append(name)
 
@@ -163,6 +164,7 @@ def process_images(known_face_encodings, known_face_names):
                 no_known_faces_dir = os.path.join(SORTED_DIR, "NoKnownFaces")
                 os.makedirs(no_known_faces_dir, exist_ok=True)
                 destination_path = os.path.join(no_known_faces_dir, filename)
+                # Move image to "NoKnownFaces" directory
                 shutil.move(image_path, destination_path)
                 continue
 
@@ -171,13 +173,13 @@ def process_images(known_face_encodings, known_face_names):
                 os.makedirs(destination_dir, exist_ok=True)
 
                 destination_path = os.path.join(destination_dir, filename)
+                # Copy image to matched name directory
                 shutil.copy(image_path, destination_path)
 
         except Exception as e:
             print(f"Error processing image {filename}: {e}")
 
-        # Update the processed image count
-        processed_images += 1
+        processed_images += 1  # Update the processed image count
         processed_images_label.config(text=f"Processed Images: {
                                       processed_images}/{total_images}")
 
@@ -254,4 +256,4 @@ start_sorting_btn = tk.Button(root, text="Start Sorting", command=start_sorting,
 start_sorting_btn.pack(pady=20)
 
 # Start the Tkinter main loop
-root.mainloop()
+root.mainloop()  # Run the main loop
